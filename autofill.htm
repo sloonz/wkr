@@ -1,6 +1,8 @@
+<!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf8"/>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>WKR auto-filler</title>
 <script src="forge.min.js"></script>
 <script type="application/javascript;version=1.7" src="keyring.js"></script>
 <script type="application/javascript;version=1.7">
@@ -218,8 +220,8 @@ false);
 		<form id="auth-form" onsubmit="return false;">
 			<h1>WKR: Enter password</h1>
 			<p>
-			<div style="display:inline-block"><label for="auth-login">Login</label><br/><input type="text" id="auth-login" /></div>
-			<div style="display:inline-block"><label for="auth-password">Password</label><br/><input type="password" id="auth-password" /></div>
+			<span style="display:inline-block"><label for="auth-login">Login</label><br/><input type="text" id="auth-login" /></span>
+			<span style="display:inline-block"><label for="auth-password">Password</label><br/><input type="password" id="auth-password" /></span>
 			</p>
 			<p>
 			<input type="submit" value="OK" id="auth-ok"/>
@@ -238,15 +240,15 @@ false);
 			<h1>WKR: Add entry</h1>
 			<p>Ring <select id="add-ring"></select></p>
 			<p>
-			<div style="display:inline-block"><label for="add-login">Login</label><br/><input type="text" id="add-login" /></div>
-			<div style="display:inline-block"><label for="add-password">Password</label><br/><input type="password" id="add-password" /></div>
+			<span style="display:inline-block"><label for="add-login">Login</label><br/><input type="text" id="add-login" /></span>
+			<span style="display:inline-block"><label for="add-password">Password</label><br/><input type="password" id="add-password" /></span>
 			</p>
 			<p><input type="checkbox" id="add-autosubmit" checked="checked" /> <label for="add-autosubmit">Automatic login</label></p>
 			<p><input type="submit" value="OK" id="add-ok"/> <input type="button" value="Cancel" id="add-cancel"/></p>
 			<hr/>
 			<p>
-			<div style="display:inline-block"><label for="add-host">Host</label><br/><input type="text" id="add-host" /></div>
-			<div style="display:inline-block"><label for="add-path">Path</label><br/><input type="text" id="add-path" /></div>
+			<span style="display:inline-block"><label for="add-host">Host</label><br/><input type="text" id="add-host" /></span>
+			<span style="display:inline-block"><label for="add-path">Path</label><br/><input type="text" id="add-path" /></span>
 			</p>
 			<p><input type="checkbox" id="add-secure"/> <label for="add-secure">HTTPS only</label></p>
 			<p><label for="add-extra">Extra data</label><br/><textarea id="add-extra"></textarea>
@@ -254,4 +256,4 @@ false);
 	</div>
 </div>
 </body>
-<html>
+</html>
