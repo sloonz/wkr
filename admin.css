@@ -1,0 +1,59 @@
+#panel {
+	position: fixed;
+	bottom:0px;
+	text-align: center;
+	width:100%;
+}
+
+#panel .container {
+	position: relative;
+	display: inline-block;
+	text-align: left;
+}
+
+.close-panel.glyphicon-remove {
+	position:absolute;
+	top:0px;
+	right:0px;
+}
+
+td:last-child, th:last-child {
+	width: 10%;
+	text-align:right;
+}
+
+td:not(:last-child), th:not(:last-child) {
+	width: 45%;
+}
+
+#extra, .raw, #panel, .recursive, #auth-info, body > .container {
+	display: none;
+}
+
+#raw-data, #extra {
+	font-family: monospace;
+}
+
+#loader-overlay {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width:100%;
+	height:100%;
+	text-align:center;
+	z-index: 1000;
+	background-color: black;
+	opacity: 0.4;
+	display: none;
+	background-image:url('ajax-loader.gif');
+	background-repeat:no-repeat;
+	background-attachment:fixed;
+	background-position:center;
+}
+
+#overlay image {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+
+}

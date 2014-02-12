@@ -5,7 +5,7 @@ var Ring = function(ringData, parentRing) {
 
 	this.subrings = [];
 	for(var i in this.ring.subrings) {
-		this.subrings[ringData.subrings[i].name] = new Ring(ringData.subrings[i], this);
+		this.subrings.push(new Ring(this.ring.subrings[i], this));
 	}
 
 	return this;
@@ -25,6 +25,10 @@ Ring.prototype = {
 };
 
 Ring.Utils = {};
+
+Ring.Utils.derivateKey = function(password, salt) {
+	return forge.pkcs5.pbkdf2(password, salt, 1000, 32);
+};
 
 Ring.Utils.sha256 = function(data) {
 	var md = forge.md.sha256.create();
@@ -50,43 +54,36 @@ Ring.Utils.aesEncode = function(data, key) {
 	return iv + cipher.output.bytes();
 };
 
-Ring.prototype.findRing = function(fullname) {
-	if(this.ring.name == fullname)
-		return this;
-
-	var i = fullname.indexOf("/");
-	if(i == -1 || fullname.substr(0,i) != this.ring.name)
-		return null;
-
-	fullname = fullname.substr(i+1);
-	i = fullname.indexOf("/");
-	if(i == -1)
-		return this.subrings[fullname];
-	else
-		return this.subrings[fullname.substr(0,i)].findRing(fullname);
-};
-
 Ring.prototype.openWithPassword = function(password, recursive) {
-	var key = forge.pkcs5.pbkdf2(password, forge.util.decode64(this.ring.salt), 1000, 32);
+	var key = Ring.Utils.derivateKey(password, forge.util.decode64(this.ring.salt));
 	if(this.openWithKey(key))
 		return this;
 
 	if(recursive) {
-		for(var i in this.subrings) {
-			var sr = this.subrings[i].openWithPassword(password, recursive);
+		this.subrings.forEach(function(sr) {
+			sr = sr.openWithPassword(password, recursive);
 			if(sr)
 				return sr;
-		}
+		});
 	}
 
 	return null;
 };
 
-Ring.prototype.openWithKey = function(key) {
+Ring.prototype.openWithKey = function(key, recursive) {
 	if(Ring.Utils.sha256(key) == this.ring.signature) {
 		this.key = key;
 		return this;
 	}
+
+	if(recursive) {
+		this.subrings.forEach(function(sr) {
+			sr = sr.openWithKey(key, recursive);
+			if(sr)
+				return sr;
+		});
+	}
+
 	return null;
 };
 
@@ -97,8 +94,9 @@ Ring.prototype.openFromParent = function() {
 		if(!this.parentRing.openFromParent())
 			return false;
 
-	for(var item in this.parentRing.decodeItems()) {
-		if(item.type == "subring" && item.name == this.ring.name) {
+	for(var i in this.parentRing.ring.items) {
+		var item = this.parentRing.decodeItem(this.parentRing.ring.items[i]);
+		if(item.type == "subring" && Ring.Utils.sha256(forge.util.decode64(item.key)) == this.ring.signature) {
 			return this.openWithKey(forge.util.decode64(item.key));
 		}
 	}
@@ -106,18 +104,10 @@ Ring.prototype.openFromParent = function() {
 	return false;
 };
 
-Ring.prototype.decodeItems = function(recursive) {
-	for(var item of this.ring.items) {
-		yield JSON.parse(Ring.Utils.aesDecode(forge.util.decode64(item), this.key));
-	}
-
-	if(recursive) {
-		for(var i in this.subrings) {
-			var subring = this.subrings[i];
-			if(!subring.key && subring.openFromParent()) {
-				for(var item in subring.decodeItems(recursive))
-					yield item;
-			}
-		}
-	}
+Ring.prototype.decodeItem = function(item) {
+	return JSON.parse(Ring.Utils.aesDecode(forge.util.decode64(item), this.key));
 };
+
+Ring.prototype.encodeItem = function(item) {
+	return forge.util.encode64(Ring.Utils.aesEncode(JSON.stringify(item), this.key));
+}

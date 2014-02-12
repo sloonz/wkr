@@ -3,255 +3,130 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <title>WKR auto-filler</title>
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+<link rel="stylesheet" href="autofill.css">
+<script src="//code.jquery.com/jquery-2.0.3.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
 <script src="forge.min.js"></script>
-<script type="application/javascript;version=1.7" src="keyring.js"></script>
-<script type="application/javascript;version=1.7">
-var parent_url = document.createElement("a");
-parent_url.href = decodeURIComponent(window.location.search.slice(1));
-
-var reply = function(fn) {
-	window.parent.postMessage({"action": fn, "arguments": Array.prototype.slice.call(arguments, 1)}, parent_url);
-};
-
-var authenticate = function(callback) {
-	var validate = function() {
-		document.activeElement.blur();
-		var rememberType = "none";
-		if(document.getElementById("auth-remember-session").checked)
-			rememberType = "session";
-		if(document.getElementById("auth-remember-local").checked)
-			rememberType = "local";
-		callback(document.getElementById("auth-login").value, document.getElementById("auth-password").value, rememberType);
-	};
-
-	document.getElementById("authenticate").style.display = "block";
-	document.getElementById("auth-cancel").addEventListener("click", function(){reply("hide");}, false);
-	document.getElementById("auth-form").addEventListener("submit", validate, false);
-	document.getElementById("auth-password").focus();
-
-	reply("show");
-};
-
-var addEntry = function(keyring, id) {
-	var findRingNames = function(ringList, depth) {
-		var result = [];
-		for(var i in ringList) {
-			result.push([ringList[i], depth]);
-			result = result.concat(findRingNames(ringList[i].subrings, depth + " "));
-		}
-		return result;
-	};
-
-	var validate = function() {
-		var cred = {};
-		cred.username = document.getElementById("add-login").value;
-		cred.password = document.getElementById("add-password").value;
-		cred.host = document.getElementById("add-host").value;
-		cred.path = document.getElementById("add-path").value;
-		cred.secure = document.getElementById("add-secure").checked?1:0;
-		cred.extra = document.getElementById("add-extra").value;
-		cred.autosubmit = document.getElementById("add-autosubmit").checked?1:0;
-
-		if(!cred.username || !cred.password || !cred.host || !cred.path) {
-			alert('A required field is missing');
-			return;
-		}
-
-
-		var sel = document.getElementById("add-ring");
-		var ring = keyring.findRing(sel.options[sel.selectedIndex].value);
-		if(!ring.key) {
-			if(!ring.openFromParent()) {
-				alert('The ring must be open in order to add an entry');
-				return;
-			}
-		}
-
-		document.activeElement.blur();
-		document.getElementById("add-ok").disabled = true;
-
-		var item = forge.util.encode64(Ring.Utils.aesEncode(JSON.stringify(cred), ring.key));
-		var qs = "ringname=" + encodeURIComponent(ring.fullname) + 
-			"&action=additem&item=" + encodeURIComponent(item);
-
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'keyring.php?id='+id+'&'+qs, true);
-		xhr.onerror = function() {
-			alert('Error while adding entry to the ring');
-			document.getElementById("add-ok").disabled = false;
-		};
-		xhr.onload = function(e) {
-			if(e.target.response == 1) {
-				reply("pushCredentials", cred);
-				reply("hide");
-			} else {
-				xhr.onerror();
-			}
-		};
-		xhr.send(null);
-	};
-
-	reply("show");
-	document.getElementById("authenticate").style.display = "none";
-	document.getElementById("addentry").style.display = "block";
-
-	var ringList = findRingNames([keyring], "");
-	for(var i in ringList) {
-		var ring = ringList[i];
-		var opt = document.createElement("option");
-		opt.setAttribute("value", ring[0].fullname);
-		opt.appendChild(document.createTextNode(ring[1] + ring[0].name));
-		document.getElementById("add-ring").appendChild(opt);
-	}
-
-	document.getElementById("add-host").value = "." + parent_url.host.replace(/^www\./, "");
-	document.getElementById("add-path").value = "/";
-	if(parent_url.protocol == "https:")
-		document.getElementById("add-secure").checked = true;
-
-	document.getElementById("add-ok").addEventListener("click", validate, false);
-	document.getElementById("add-cancel").addEventListener("click", function(){reply("hide");}, false);
-};
-
-var handlers = {};
-
-handlers.getCredentials = function(login, password, passwordStorage) {
-	var keyringCred = null;
-	if(password == undefined) {
-		keyringCred = sessionStorage.getItem("wkrCredentials") || localStorage.getItem("wkrCredentials");
-		if(keyringCred === null) {
-			authenticate(handlers.getCredentials);
-			return;
-		} else {
-			keyringCred = JSON.parse(keyringCred);
-		}
-	}
-
-	var id = (keyringCred && keyringCred.id) || (login && Ring.Utils.sha256(login));
-	var req = new XMLHttpRequest();
-	req.open('GET', "keyring.php?id="+id+"&action=get&" + Date.now(), true);
-	req.onerror = function(e) {
-		if(e.target && e.target.status && e.target.status == 404) {
-			sessionStorage.removeItem("wkrCredentials");
-			localStorage.removeItem("wkrCredentials");
-		}
-		alert('Can’t fetch keyring');
-	};
-	req.onload = function(e) {
-		if(e.target.status != 200)
-			return req.onerror(e);
-		var keyring = new Ring(JSON.parse(e.target.response)); /* TODO: manage multiple keyrings in keyring.json */
-
-		/* Open keyring */
-		if(password == undefined) {
-			var ring = keyring.findRing(keyringCred.ring);
-			var key = forge.util.decode64(keyringCred.key);
-			if(!ring.openWithKey(key)) {
-				alert('Ring key has changed');
-				sessionStorage.removeItem("wkrCredentials");
-				localStorage.removeItem("wkrCredentials");
-				authenticate(handlers.getCredentials);
-				return;
-			}
-		} else {
-			var ring = keyring.openWithPassword(password, true);
-			if(!ring) {
-				alert('Bad password');
-				authenticate(handlers.getCredentials);
-				return;
-			}
-
-			if(passwordStorage) {
-				keyringCred = JSON.stringify({
-					ring: ring.fullname,
-					key: forge.util.encode64(ring.key),
-					id: id
-				});
-				if(passwordStorage == "session")
-					sessionStorage.setItem("wkrCredentials", keyringCred);
-				if(passwordStorage == "local")
-					localStorage.setItem("wkrCredentials", keyringCred);
-			}
-		}
-
-		/* If hostname = test.example.com, then search for test.example.com, then example.com */
-		// TODO: what about localhost ? what about 192.168.0.1 ? what about port ?
-		var host = parent_url.host;
-		var match = false;
-		while(host.indexOf(".") > 0 && !match) {
-			for(var item in ring.decodeItems(true)) {
-				match = (
-						(item.host && item.path) &&
-						(parent_url.protocol == "https:" || !item.secure) &&
-						(item.host[0] == "." ? parent_url.host.endsWith(item.host.slice(1)) : item.host == parent_url.host) &&
-						(parent_url.pathname.startsWith(item.path))
-					    );
-				if(match) {
-					reply("pushCredentials", item);
-					break; /* TODO: handle mutlipe credentials for same site */
-				}
-			}
-			host = host.slice(host.indexOf(".")+1);
-		}
-
-		if(!match && confirm('No entry for this website. Do you want to create one ?'))
-			return addEntry(ring, id);
-
-		reply("hide");
-	};
-	req.send(null);
-};
-
-window.addEventListener("message", function(event) {
-	if(event.origin != parent_url.protocol + "//" + parent_url.host) {
-		alert('Parent URL and requested URL does not match');
-		return;
-	}
-
-	if(handlers[event.data.action])
-		handlers[event.data.action].apply(window, event.data.arguments);
-	},
-false);
-</script>
+<script src="keyring.js"></script>
+<script src="common.js"></script>
+<script src="autofill.js"></script>
 </head>
-<body style="background:none;text-align:center;vertical-align:middle">
-<div id="content" style="display:inline-block;text-align:left;background:white;padding:1em;border:3px solid red">
-	<div id="authenticate" style="display:none">
-		<form id="auth-form" onsubmit="return false;">
-			<h1>WKR: Enter password</h1>
-			<p>
-			<span style="display:inline-block"><label for="auth-login">Login</label><br/><input type="text" id="auth-login" /></span>
-			<span style="display:inline-block"><label for="auth-password">Password</label><br/><input type="password" id="auth-password" /></span>
-			</p>
-			<p>
-			<input type="submit" value="OK" id="auth-ok"/>
-			<input type="button" value="Cancel" id="auth-cancel"/>
-			</p>
-			<p>
-			<input type="radio" name="remember" value="none" id="auth-remember-none" checked="checked"/><label for="auth-remember-none">Don’t remember the password</label><br/>
-			<input type="radio" name="remember" value="session" id="auth-remember-session"/><label for="auth-remember-session">Remember the password for this session</label><br/>
-			<input type="radio" name="remember" value="local" id="auth-remember-local"/><label for="auth-remember-local">Remember the password on this computer</label><br/>
-			</p>
-		</form>
+<body style="background:none">
+<div id="overlay"></div>
+<div>
+	<div id="loader-overlay"></div>
+	<div id="authenticate">
+		<nav class="navbar navbar-default">
+			<div class="container-fluid">
+				<div class="navbar-collapse collapse">
+					<form class="navbar-form navbar-left" id="auth-form">
+						<div class="form-group">
+							<label class="sr-only" for="auth-login">Email address</label>
+							<input type="text" class="form-control" id="auth-login" placeholder="Login">
+						</div>
+						<div class="form-group">
+							<label class="sr-only" for="auth-password">Password</label>
+							<input type="password" class="form-control" id="auth-password" placeholder="Password">
+						</div>
+						<div class="form-group">
+							<select class="form-control" id="auth-remember">
+								<option value="none">Don’t remember the password</option>
+								<option value="session">Remember the password for this session</option>
+								<option value="local">Remember the password on this computer</option>
+							</select>
+						</div>
+						<button type="submit" class="btn navbar-btn">Sign in</button>
+					</form>
+
+					<div class="nav navbar-nav" id="auth-info">
+						<p class="navbar-text"></p>
+						<button type="button" class="btn navbar-btn" id="sign-out">Sign out</button>
+					</div>
+
+					<button id="close-btn" type="button" class="btn navbar-btn navbar-right glyphicon glyphicon-remove"></button>
+				</div>
+			</div>
+		</nav>
 	</div>
 
-	<div id="addentry" style="display:none">
-		<form id="entry-form" onsubmit="return false;">
-			<h1>WKR: Add entry</h1>
-			<p>Ring <select id="add-ring"></select></p>
-			<p>
-			<span style="display:inline-block"><label for="add-login">Login</label><br/><input type="text" id="add-login" /></span>
-			<span style="display:inline-block"><label for="add-password">Password</label><br/><input type="password" id="add-password" /></span>
-			</p>
-			<p><input type="checkbox" id="add-autosubmit" checked="checked" /> <label for="add-autosubmit">Automatic login</label></p>
-			<p><input type="submit" value="OK" id="add-ok"/> <input type="button" value="Cancel" id="add-cancel"/></p>
-			<hr/>
-			<p>
-			<span style="display:inline-block"><label for="add-host">Host</label><br/><input type="text" id="add-host" /></span>
-			<span style="display:inline-block"><label for="add-path">Path</label><br/><input type="text" id="add-path" /></span>
-			</p>
-			<p><input type="checkbox" id="add-secure"/> <label for="add-secure">HTTPS only</label></p>
-			<p><label for="add-extra">Extra data</label><br/><textarea id="add-extra"></textarea>
+	<div id="cred-selection-panel" class="panel panel-default">
+		<div class="panel-heading">Multiple credentials found</div>
+		<div class="panel-body">
+			<div id="cred-selection" class="list-group"></div>
+		</div>
+	</div>
+
+	<div id="panel" class="container panel panel-default">
+		<form id="item-form">
+			<div class="panel-body">
+				<div class="row non-raw">
+					<div class="form-group col-md-2 col-md-offset-1">
+						<label for="username">Login</label>
+						<input class="form-control" type="text" id="username" />
+					</div>
+					<div class="form-group col-md-2">
+						<label for="password">Password</label>
+						<div class="input-group">
+							<input class="form-control" type="password" id="password" />
+							<a class="input-group-addon glyphicon glyphicon-eye-open btn" id="toggle-viewpass" href="#"></a>
+						</div>
+					</div>
+					<div class="form-group col-md-2">
+						<label for="host">Host</label>
+						<input class="form-control" type="text" id="host" />
+					</div>
+					<div class="form-group col-md-2">
+						<label for="path">Path</label>
+						<input class="form-control" type="text" id="path" />
+					</div>
+					<div class="form-group col-md-2">
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" id="autosubmit" /> Automatic login
+							</label>
+						</div>
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" id="secure"/> HTTPS only
+							</label>
+						</div>
+					</div>
+				</div>
+				<div class="row non-raw">
+					<div class="form-group col-md-10 col-md-offset-1">
+						<label><a id="toggle-extra" href="#"><span class="glyphicon glyphicon-chevron-right"></span> Extra data</a></label>
+						<textarea rows="4" class="form-control" id="extra"></textarea>
+					</div>
+				</div>
+				<div class="row raw">
+					<div class="form-group col-md-offset-1 col-md-10">
+						<textarea rows="6" class="form-control" id="raw-data"></textarea>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-offset-1 col-md-10 text-danger" id="form-error"></div>
+				</div>
+				<div class="row">
+					<div class="col-md-1 col-md-offset-1">
+						<button type="button" class="btn btn-default" id="toggle-raw">Raw</button>
+					</div>
+					<div class="col-md-1 col-md-offset-7">
+						<div class="btn-group">
+							<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+								<span id="current-ring"></span> <span class="caret"></span>
+							</button>
+							<ul class="dropdown-menu" id="ring-list">
+								<li class="divider"></li>
+							</ul>
+						</div>
+					</div>
+					<div class="col-md-1">
+						<input type="submit" class="btn btn-success" value="Save">
+					</div>
+				</div>
+			</div>
 		</form>
 	</div>
 </div>

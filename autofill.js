@@ -1,106 +1,121 @@
-// ==UserScript==
-// @name        WKR
-// @namespace   http://github.com/sloonz
-// @updateURL   https://raw.github.com/sloonz/wkr/autofill.js
-// @include     *
-// @version     1.0
-// @grant       GM_getValue
-// @grant       GM_setValue
-// ==/UserScript==
+var currentRing = null;
+var parent_url = document.createElement("a");
+parent_url.href = decodeURIComponent(window.location.search.slice(1));
 
-(function() {
-	var URL = GM_getValue("url");
-	if(!URL) {
-		URL = prompt('Autofiller URL');
-		GM_setValue("url", URL);
+var reply = function(fn) {
+	window.parent.postMessage({"action": fn, "arguments": Array.prototype.slice.call(arguments, 1)}, parent_url);
+};
+
+var handlers = {};
+var hintedCreds = null;
+
+handlers.getCredentials = function(_hintedCreds) {
+	hintedCreds = _hintedCreds;
+	wkr.load();
+};
+
+$(window).bind("message", function(event) {
+	if(event.originalEvent.origin != parent_url.protocol + "//" + parent_url.host) {
+		alert('Parent URL and requested URL does not match');
+		return;
 	}
 
-	var URL_a = document.createElement("a");
-	URL_a.href = URL;
-	ORIGIN = URL_a.protocol + "//" + URL_a.host;
+	if(handlers[event.originalEvent.data.action])
+	handlers[event.originalEvent.data.action].apply(window, event.originalEvent.data.arguments);
+});
 
-	if(!URL || document.location.protocol + "//" + document.location.host == ORIGIN)
-		return;
+wkr.selectRing = function(ring) {
+	currentRing = ring;
+	$("#current-ring").text(currentRing.name);
+};
 
-	var activeElement = document.activeElement;
-	var frame = document.createElement("iframe");
-
-	frame.addEventListener("load", function() {
-		frame.contentWindow.postMessage({"action": "getCredentials", "arguments": []}, URL);
-	}, false);
-
-	var handlers = {}
-
-	handlers.onMessage = function(event) {
-		if(event.origin == ORIGIN) {
-			handlers[event.data.action].apply(window, event.data.arguments);
+wkr.afterLogin = function() {
+	/* If hostname = test.example.com, then search for test.example.com, then example.com */
+	// TODO: what about localhost ? what about 192.168.0.1 ? what about port ?
+	var items = {};
+	var hintedItems = {};
+	var collectItems = function(ring) {
+		if(!ring.key) {
+			ring.openFromParent();
 		}
-		else if(event.data == "wkr_findCredentials") {
-			frame.src = URL + "?" + encodeURIComponent(window.location.toString());
-			frame.style.zIndex = 1000;
-			frame.style.position = "fixed";
-			frame.style.display = "none";
-			frame.style.border = "none";
-
-			document.body.appendChild(frame);
-		}
-	};
-
-	handlers.show = function() {
-		frame.style.display = "block";
-		frame.style.width = Math.floor(window.innerWidth*0.9) + "px";
-		frame.style.height = Math.floor(window.innerHeight*0.9) + "px";
-		frame.style.left = Math.floor(window.innerWidth*0.05) + "px";
-		frame.style.top = Math.floor(window.innerHeight*0.05) + "px";
-	};
-
-	handlers.hide = function() {
-		frame.parentNode.removeChild(frame);
-		window.removeEventListener("message", handlers.onMessage, false);
-	};
-
-	handlers.pushCredentials = function(cred) {
-		var fillForm = function(form) {
-			var user_filled = false;
-			var pwd_filled = false;
-			for(var i in form.elements) {
-				var el = form.elements[i];
-				if(el.type == "password") {
-					el.value = cred.password;
-					pwd_filled = true;
+		ring.ring.items.forEach(function(encodedItem) {
+			var item = ring.decodeItem(encodedItem);
+			var host = parent_url.host;
+			while(host.indexOf(".") > 0) {
+				var match = (
+					(item.host && item.path) &&
+					(parent_url.protocol == "https:" || !item.secure) &&
+					(item.host[0] == "." ? parent_url.host.endsWith(item.host.slice(1)) : item.host == parent_url.host) &&
+					(parent_url.pathname.startsWith(item.path))
+					);
+				if(match) {
+					if(hintedCreds.username && hintedCreds.username == item.username) {
+						hintedItems[ring.ring.signature + "-" + encodedItem] = [ring.fullname, item];
+					} else {
+						items[ring.ring.signature + "-" + encodedItem] = [ring.fullname, item];
+					}
 				}
-				if(el.type == "text" && user_filled == false) {
-					el.value = cred.username;
-					user_filled = true;
-				}
+				host = host.slice(host.indexOf(".")+1);
 			}
+		});
+		ring.subrings.forEach(function(sr){
+			collectItems(sr, host);
+		});
+	};
 
-			if(user_filled && pwd_filled && cred.autosubmit) {
-				var evt = document.createEvent("HTMLEvents");
-				evt.initEvent("submit", true, true);
-				form.dispatchEvent(evt);
-				return true;
-			}
+	collectItems(wkr.rootRing);
 
-			return false;
+	if(Object.keys(hintedItems).length > 0) {
+		items = hintedItems;
+	}
+
+	if(Object.keys(items).length == 1) {
+		reply("pushCredentials", items[Object.keys(items)[0]][1]);
+		reply("hide");
+	} else if(Object.keys(items).length > 1) {
+		$("#cred-selection-panel").show();
+		for(var i in items) {
+			var item_a = $('<a href="#" onclick="return false;" class="list-group-item"></a>');
+			var item_h = $('<h4 class="list-group-item-heading"></h4>');
+			var item_t = $('<p class="list-group-item-text"></p>');
+			item_h.text(items[i][1].username);
+			item_t.text(items[i][0]);
+			item_a.append(item_h);
+			item_a.append(item_t);
+			(function(item){
+				item_a.click(function(){
+					reply("pushCredentials", item);
+					reply("hide");
+				});
+			})(items[i][1]);
+			$("#cred-selection").append(item_a);
 		};
+	} else if(confirm('No entry for this website. Do you want to create one ?')) {
+		wkr.setItem({
+			"host": "." + parent_url.host.replace(/^www\./, ""),
+			"path": "/",
+			"secure": (parent_url.protocol == "https:"),
+			"username": hintedCreds.username,
+			"password": hintedCreds.password
+		});
+		$("#panel").show();
+	}
+};
 
-		if(activeElement && activeElement.form) {
-			if(fillForm(activeElement.form)) {
-				return;
-			}
-		}
-
-		var els = document.getElementsByTagName("input");
-		for(var i in els) {
-			if(els[i].type == "password")
-				if(fillForm(els[i].form))
-					return;
-		}
-	};
-
-	window.addEventListener("message", handlers.onMessage, false);
-	window.addEventListener("keypress", function(e){
-		(e.ctrlKey && e.charCode == "x".charCodeAt(0)) && window.postMessage("wkr_findCredentials","*");
-	},false);
-})();
+$(function() {
+	$("#close-btn").click(function(){reply("hide");});
+	$("#sign-out").click(function(){
+		localStorage.removeItem("wkrCredentials");
+		sessionStorage.removeItem("wkrCredentials");
+		$("#auth-info").hide();
+		$("#panel").hide();
+		$("#auth-form").show();
+	});
+	$("#item-form").submit(function(){
+		var item = wkr.getItem();
+		wkr.submitItem(currentRing, null, function() {
+			reply("pushCredentials", item);
+			reply("hide");
+		});
+	});
+});

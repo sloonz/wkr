@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WKR</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+<link rel="stylesheet" href="admin.css">
+<script src="//code.jquery.com/jquery-2.0.3.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+<script src="forge.min.js"></script>
+<script src="keyring.js"></script>
+<script src="common.js"></script>
+<script src="admin.js"></script>
+</head>
+<body>
+
+<div id="loader-overlay"></div>
+
+<nav class="navbar navbar-default">
+	<div class="container-fluid">
+		<div class="navbar-collapse collapse">
+			<form class="navbar-form navbar-left" id="auth-form">
+				<div class="form-group">
+					<label class="sr-only" for="auth-login">Email address</label>
+					<input type="text" class="form-control" id="auth-login" placeholder="Login">
+				</div>
+				<div class="form-group">
+					<label class="sr-only" for="auth-password">Password</label>
+					<input type="password" class="form-control" id="auth-password" placeholder="Password">
+				</div>
+				<div class="checkbox">
+					<select class="form-control" id="auth-remember">
+						<option value="none">Don’t remember the password</option>
+						<option value="session">Remember the password for this session</option>
+						<option value="local">Remember the password on this computer</option>
+					</select>
+				</div>
+				<button type="submit" class="btn navbar-btn">Sign in</button>
+			</form>
+
+			<div class="nav navbar-nav" id="auth-info">
+				<p class="navbar-text"></p>
+				<button type="button" class="btn navbar-btn" id="sign-out">Sign out</button>
+			</div>
+
+			<div class="nav navbar-nav navbar-right" id="new-user-div">
+				<button type="button" class="dropdown-toggle btn navbar-btn" data-toggle="dropdown">New User <span class="caret"></span></button>
+				<ul class="dropdown-menu">
+					<li><a href="#" id="create-account">Create Account</a></li>
+					<li><a href="autofill.user.js">Install Userscript</a></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</nav>
+
+<div class="container">
+	<div class="row">
+		<div class="col-md-1">
+			<div class="btn-group">
+				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+					<span id="current-ring"></span> <span class="caret"></span>
+				</button>
+				<ul class="dropdown-menu" id="ring-list">
+					<li class="divider"></li>
+					<li id="remove-subring"><a href="#"><span class="glyphicon glyphicon-trash"></span> Remove subring</a></li>
+					<li id="rename-subring"><a href="#"><span class="glyphicon glyphicon-pencil"></span> Rename subring</a></li>
+					<li id="create-subring"><a href="#"><span class="glyphicon glyphicon-plus"></span> Create subring</a></li>
+				</ul>
+			</div>
+		</div>
+
+		<div class="col-md-10">
+			<button type="button" class="btn btn-default" id="toggle-recursive">Show subrings entries</button>
+		</div>
+
+		<div class="col-md-1">
+			<button type="button" id="add-item" class="btn btn-default"><span class="glyphicon glyphicon-plus"></span> Add entry</button>
+		</div>
+	</div>
+
+	<p>&nbsp;</p>
+
+	<div class="row">
+		<div class="col-md-12">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>Domain</th>
+						<th>Login</th>
+						<th>Remove</th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<div id="panel">
+	<div class="container panel panel-default">
+		<button class="close-panel glyphicon glyphicon-remove btn" type="button"></button>
+		<form id="item-form">
+			<div class="panel-body">
+				<div class="row non-raw">
+					<div class="form-group col-md-2 col-md-offset-1">
+						<label for="username">Login</label>
+						<input class="form-control" type="text" id="username" />
+					</div>
+					<div class="form-group col-md-2">
+						<label for="password">Password</label>
+						<div class="input-group">
+							<input class="form-control" type="password" id="password" />
+							<a class="input-group-addon glyphicon glyphicon-eye-open btn" id="toggle-viewpass" href="#"></a>
+						</div>
+					</div>
+					<div class="form-group col-md-2">
+						<label for="host">Host</label>
+						<input class="form-control" type="text" id="host" />
+					</div>
+					<div class="form-group col-md-2">
+						<label for="path">Path</label>
+						<input class="form-control" type="text" id="path" />
+					</div>
+					<div class="form-group col-md-2">
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" id="autosubmit" /> Automatic login
+							</label>
+						</div>
+						<div class="checkbox">
+							<label>
+								<input type="checkbox" id="secure"/> HTTPS only
+							</label>
+						</div>
+					</div>
+				</div>
+				<div class="row non-raw">
+					<div class="form-group col-md-10 col-md-offset-1">
+						<label><a id="toggle-extra" href="#"><span class="glyphicon glyphicon-chevron-right"></span> Extra data</a></label>
+						<textarea rows="4" class="form-control" id="extra"></textarea>
+					</div>
+				</div>
+				<div class="row raw">
+					<div class="form-group col-md-offset-1 col-md-10">
+						<textarea rows="6" class="form-control" id="raw-data"></textarea>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-md-offset-1 col-md-10 text-danger" id="form-error"></div>
+				</div>
+				<div class="row">
+					<div class="col-md-1 col-md-offset-1">
+						<button type="button" class="btn btn-default" id="toggle-raw">Raw</button>
+					</div>
+					<div class="col-md-1 col-md-offset-7">
+						<button class="close-panel btn btn-danger" type="button">Cancel</button>
+					</div>
+					<div class="col-md-1">
+						<input type="submit" class="btn btn-success" value="Save">
+					</div>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+
+</body>
+</html>
