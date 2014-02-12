@@ -12,31 +12,23 @@ parent ring
 
 # Installation and usage
 
-Server-side : copy `autofill.htm`, `keyring.js`, `keyring.php`
-and `forge.min.js` on your server (PHP required with OpenSSL
-extension). Modify the first line of `keyring.php` and point to a
-directory writable by PHP.
+Server-side : copy all files on your web server (PHP is required). Modify
+the first line of `keyring.php` and point to a directory writable by PHP.
 
-You then have to create your master keyring for an user :
-`https://example.com/wkr/keyring.php?action=newuser&id=username&ringname=master&password=1234`
+The main entry point is `admin.htm`. First, install user script. The
+script will ask you the autofiller url ; it is the URL for
+`autofill.htm`. You can then create an account.
 
-To create a subring (in this example,
-master/perso/web, where master/perso password is 123) :
-`https://example.com/wkr/keyring.php?action=create&id=username&ringname=master/perso&subring=web&parentPass=123&ringPass=12`
+Usage : press C-x in any authentication form. The first time it will ask
+you to create an entry ; next time it will automatically fill the form.
 
-You can then install `autofill.js` as a GreaseMonkey/UserScript script. It
-will ask for WKR URL ; fill in the full URL of `autofill.htm` (in our
-example, `https://example.com/wkr/autofill.htm`). It is strongly advised
-to use HTTPS ; WKR won’t work on HTTPS sites otherwise.
+You can use `admin.htm` to manage rings and entries.
 
 # TODO
 
 Contributions welcome, especially on UI side.
 
-* Handle multiple identities for a single website
-
-* Nice interface to manage rings and websites
-
+* Move entries to another ring
+* Change password of a ring
 * Bookmarklets, OTP
-
 * Nice interface for user creation
