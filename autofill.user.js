@@ -1,7 +1,6 @@
 // ==UserScript==
 // @name        WKR
 // @namespace   http://github.com/sloonz
-// @updateURL   https://raw.github.com/sloonz/wkr/autofill.js
 // @include     *
 // @version     1.0
 // @grant       GM_getValue
