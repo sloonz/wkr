@@ -128,6 +128,6 @@
 
 	window.addEventListener("message", handlers.onMessage, false);
 	window.addEventListener("keydown", function(e){
-		(e.ctrlKey && e.keyCode == 88 /* DOM_VK_X */) && window.postMessage("wkr_findCredentials","*");
+		(e.ctrlKey && e.keyCode == 89 /* DOM_VK_Y */) && window.postMessage("wkr_findCredentials","*");
 	},false);
 })();

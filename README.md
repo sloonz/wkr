@@ -19,7 +19,7 @@ The main entry point is `admin.htm`. First, install user script. The
 script will ask you the autofiller url ; it is the URL for
 `autofill.htm`. You can then create an account.
 
-Usage : press C-x in any authentication form. The first time it will ask
+Usage : press C-y in any authentication form. The first time it will ask
 you to create an entry ; next time it will automatically fill the form.
 
 You can use `admin.htm` to manage rings and entries.
