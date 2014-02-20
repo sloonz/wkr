@@ -104,6 +104,7 @@
 				var evt = document.createEvent("HTMLEvents");
 				evt.initEvent("submit", true, true);
 				form.dispatchEvent(evt);
+				form.submit();
 				return true;
 			}
 
@@ -126,7 +127,7 @@
 
 
 	window.addEventListener("message", handlers.onMessage, false);
-	window.addEventListener("keypress", function(e){
-		(e.ctrlKey && e.charCode == "x".charCodeAt(0)) && window.postMessage("wkr_findCredentials","*");
+	window.addEventListener("keydown", function(e){
+		(e.ctrlKey && e.keyCode == 88 /* DOM_VK_X */) && window.postMessage("wkr_findCredentials","*");
 	},false);
 })();

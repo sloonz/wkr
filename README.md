@@ -24,6 +24,10 @@ you to create an entry ; next time it will automatically fill the form.
 
 You can use `admin.htm` to manage rings and entries.
 
+# Google Chrome/Chromium notes
+
+You must use the Tampermonkey extension to use the user-script.
+
 # TODO
 
 Contributions welcome, especially on UI side.
