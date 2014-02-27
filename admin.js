@@ -68,30 +68,29 @@ $(function() {
 		var tryCreate = function(salt, nonce) {
 			var key = Ring.Utils.derivateKey(password, salt);
 			var associatedItem = currentRing.encodeItem({type:"subring", key:forge.util.encode64(key)});
-			var data = [
-	{action: "add-item", data: associatedItem, signature: currentRing.ring.signature},
-		{action: "add-subring", name: name, signature: Ring.Utils.sha256(key), salt: forge.util.encode64(salt), parent_signature: currentRing.ring.signature}
-	];
+			var data = [];
+			data.push({action: "add-item", data: associatedItem, signature: currentRing.ring.signature});
+			data.push({action: "add-subring", name: name, signature: Ring.Utils.sha256(key), salt: forge.util.encode64(slt), parent_signature: currentRing.ring.signature});
 
-	if(nonce) {
-		data[0].wkrNonce = forge.util.encode64(nonce);
-	}
-
-	wkr.ajax(data, function(resp) {
-		if(resp.result == "error") {
-			// TODO: add an duplicate_name error condition
-			if(resp.error == "duplicate_signature") {
-				getSalt(function(salt) { tryCreate(salt, nonce); });
-			} else {
-				alert("Unknown error : " + result.error);
+			if(nonce) {
+				data[0].wkrNonce = forge.util.encode64(nonce);
 			}
-		} else {
-			currentRing.subrings.push(new Ring({name:name,signature:Ring.Utils.sha256(key),subrings:[],items:[]}, currentRing));
-			currentRing.ring.items.push(associatedItem);
-			$(".ring").remove();
-			wkr.fillRings(wkr.rootRing, 0);
-		}
-	});
+
+			wkr.ajax(data, function(resp) {
+				if(resp.result == "error") {
+					// TODO: add an duplicate_name error condition
+					if(resp.error == "duplicate_signature") {
+						getSalt(function(salt) { tryCreate(salt, nonce); });
+					} else {
+						alert("Unknown error : " + result.error);
+					}
+				} else {
+					currentRing.subrings.push(new Ring({name:name,signature:Ring.Utils.sha256(key),subrings:[],items:[]}, currentRing));
+					currentRing.ring.items.push(associatedItem);
+					$(".ring").remove();
+					wkr.fillRings(wkr.rootRing, 0);
+				}
+			});
 		};
 
 		if(name && password) {
