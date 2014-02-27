@@ -203,7 +203,7 @@ $(function() {
 				if(dItem.type == "subring") {
 					return;
 				} else if(dItem.host && dItem.username) {
-					var tr = $('<tr'+cls+'><td></td><td></td><td><button class="glyphicon glyphicon-trash btn"></button></td></tr>');
+					var tr = $('<tr'+cls+'><td></td><td></td><td><button class="glyphicon glyphicon-pencil btn"></button><button class="glyphicon glyphicon-trash btn"></button></td></tr>');
 					$("tbody").append(tr);
 					$("td:eq(0)", tr).append(dItem.host);
 					$("td:eq(1)", tr).append(dItem.username);
@@ -220,7 +220,7 @@ $(function() {
 							});
 						});
 					});
-					$("td:last", tr).click(function() {
+					$(".glyphicon-trash", tr).click(function() {
 						tr.addClass("danger");
 						if(confirm("Do you really want to delete this item ?")) {
 							wkr.ajax({action: "remove-item", signature: ring.ring.signature, data: item}, function(resp) {
@@ -233,6 +233,43 @@ $(function() {
 							});
 						}
 						tr.removeClass("danger");
+					});
+					$(".glyphicon-pencil", tr).click(function(){
+						$("#move-item-dialog").modal("show");
+						$("#move-item-ring-list li").remove();
+						$("#move-item-dialog .ring-name").text(currentRing.name);
+						var selectedRing = currentRing;
+						var fillSelector = function(ring, indent) {
+							var li = $('<li><a href="#"><span style="margin-left:'+indent+'em">toto</span></a></li>');
+							$("span", li).text(ring.name);
+							$("a", li).attr("onclick", "return false;");
+							$("#move-item-ring-list").append(li);
+							$("a", li).click(function() {
+								selectedRing = ring;
+								$("#move-item-dialog .ring-name").text(selectedRing.name);
+							});
+							ring.subrings.forEach(function(sr){
+								fillSelector(sr, indent+1);
+							});
+						};
+						fillSelector(wkr.rootRing, 0);
+						$("#move-item-dialog .modal-footer .btn-primary").click(function() {
+							var movedItem = selectedRing.encodeItem(dItem);
+							var data = [];
+							data.push({action: "remove-item", signature: ring.ring.signature, data: item});
+							data.push({action: "add-item", signature: selectedRing.ring.signature, data: movedItem});
+							wkr.ajax(data, function(resp) {
+								if(resp.result == "error") {
+									alert("Unknown error: "+ resp.error);
+								} else {
+									selectedRing.ring.items.push(movedItem);
+									delete ring.ring.items[ring.ring.items.indexOf(item)];
+									wkr.selectRing(currentRing);
+									$("#move-item-dialog").modal("hide");
+								}
+							}); 
+						});
+
 					});
 					if(!$("#toggle-recursive").hasClass("btn-default")) {
 						tr.show();

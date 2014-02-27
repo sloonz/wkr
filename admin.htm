@@ -89,7 +89,7 @@
 					<tr>
 						<th>Domain</th>
 						<th>Login</th>
-						<th>Remove</th>
+						<th>Actions</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -164,6 +164,30 @@
 				</div>
 			</div>
 		</form>
+	</div>
+</div>
+
+<div id="move-item-dialog" class="modal fade" role="dialog" style="display:none">
+	<div class="modal-dialog modal-sm">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type"button" class="close" data-dismiss="modal">&times;</button>
+				<h4 class="modal-title">Move to another ring</h4>
+			</div>
+			<div class="modal-body text-center">
+				<div class="btn-group text-left">
+					<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+						<span class="ring-name"></span> <span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu" id="move-item-ring-list">
+					</ul>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary">Move to this ring</button>
+			</div>
+		</div>
 	</div>
 </div>
 
