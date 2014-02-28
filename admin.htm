@@ -196,5 +196,44 @@
 	</div>
 </div>
 
+<div id="create-account-dialog" class="modal fade" role="dialog">
+	<form role="form">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Create account</h4>
+				</div>
+				<div class="modal-body">
+					<div class="form-group">
+						<label for="create-account-login">Login</label>
+						<input class="form-control" type="text" id="create-account-login">
+					</div>
+					<div class="form-group">
+						<label for="create-account-ring-name">Root ring name</label>
+						<input class="form-control" type="text" id="create-account-ring-name">
+					</div>
+					<div class="form-group">
+						<label for="create-account-ring-password">Root ring password</label>
+						<input class="form-control" type="password" id="create-account-ring-password">
+					</div>
+					<div class="form-group">
+						<label for="create-account-remember">Remember password</label>
+						<select class="form-control" id="create-account-remember">
+							<option value="none">Don’t remember the password</option>
+							<option value="session">For this session</option>
+							<option value="local">On this computer</option>
+						</select>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					<button type="submit" class="btn btn-primary">Create account</button>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
 </body>
 </html>

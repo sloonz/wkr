@@ -35,31 +35,42 @@ $(function() {
 	});
 
 	$("#create-account").click(function(){
-		var auth = wkr.getAuthForm();
-		if(auth) {
-			getSalt(function(salt) {
-				var key = Ring.Utils.derivateKey(auth.password, salt);
-				wkr.keyringCred = { id: Ring.Utils.sha256(auth.login), key: key };
-				var data = {
-					"action": "create",
-				"name": prompt('Enter root ring name'),
-				"salt": forge.util.encode64(salt),
-				"signature": Ring.Utils.sha256(key)
-				};
-				wkr.ajax(data, function(resp) {
-					if(resp.result == "error") {
-						if(resp.error == "existing") {
-							alert('This account already exists');
-						} else {
-							alert('Unknown error : ' + resp.error);
-						}
-						return;
-					}
-
-					wkr.doLogin(null, auth.password, auth.rememberType);
-				});
+		$("#create-account-dialog").modal("show");
+		$("#create-account-dialog form").submit(function(){
+			var ok = true;
+			["login", "ring-name", "ring-password"].forEach(function(it){
+				if(!$("#create-account-"+it).val()) {
+					ok = false;
+					$("#create-account-"+it).parent().addClass("has-error");
+				} else {
+					$("#create-account-"+it).parent().removeClass("has-error");
+				}
 			});
-		}
+			if(ok) {
+				getSalt(function(salt){
+					var key = Ring.Utils.derivateKey($("#create-account-ring-password").val(), salt);
+					wkr.keyringCred = { id: Ring.Utils.sha256($("#create-account-login").val()), key: key };
+					var data = {};
+					data.action = "create";
+					data.name = $("#create-account-ring-name").val();
+					data.salt = forge.util.encode64(salt);
+					data.signature = Ring.Utils.sha256(key);
+					wkr.ajax(data, function(resp) {
+						if(resp.result == "error") {
+							if(resp.error == "existing") {
+								alert('This account already exists');
+							} else {
+								alert('Unknown error : ' + resp.error);
+							}
+						} else {
+							$("#create-account-dialog").modal("hide");
+							wkr.doLogin(null, $("#create-account-ring-password").val(), $("#create-account-remember :selected").val());
+						}
+					});
+				});
+			}
+			return false;
+		});
 	});
 
 	$("#create-subring").click(function(){
