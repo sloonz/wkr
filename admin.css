@@ -26,7 +26,7 @@ td:not(:last-child), th:not(:last-child) {
 	width: 45%;
 }
 
-#extra, .raw, #panel, .recursive, #auth-info, body > .container {
+#extra, .raw, #panel, .recursive, .auth-info, body > .container {
 	display: none;
 }
 
