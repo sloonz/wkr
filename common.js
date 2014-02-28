@@ -149,8 +149,8 @@ wkr.doLogin = function(key, password, rememberType) {
 				wkr.fillRings(wkr.rootRing, 0);
 				wkr.selectRing(wkr.rootRing);
 				$("#auth-form").hide();
-				$("#auth-info").show();
-				$("#auth-info p").text(wkr.rootRing.name + " @ " + wkr.keyringCred.id);
+				$(".auth-info").show();
+				$(".auth-info .navbar-text").text(wkr.rootRing.name + " @ " + wkr.keyringCred.id);
 				if(rememberType != "none") {
 					wkr.keyringCred.key = forge.util.encode64(wkr.rootRing.key);
 					eval(rememberType+"Storage").setItem("wkrCredentials", JSON.stringify(wkr.keyringCred));
