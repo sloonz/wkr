@@ -76,22 +76,18 @@ $(function() {
 	$("#create-subring").click(function(){
 		var name = prompt('Enter ring name');
 		var password = prompt('Enter ring password');
-		var tryCreate = function(salt, nonce) {
+		var tryCreate = function(salt) {
 			var key = Ring.Utils.derivateKey(password, salt);
 			var associatedItem = currentRing.encodeItem({type:"subring", key:forge.util.encode64(key)});
 			var data = [];
 			data.push({action: "add-item", data: associatedItem, signature: currentRing.ring.signature});
 			data.push({action: "add-subring", name: name, signature: Ring.Utils.sha256(key), salt: forge.util.encode64(slt), parent_signature: currentRing.ring.signature});
 
-			if(nonce) {
-				data[0].wkrNonce = forge.util.encode64(nonce);
-			}
-
 			wkr.ajax(data, function(resp) {
 				if(resp.result == "error") {
 					// TODO: add an duplicate_name error condition
 					if(resp.error == "duplicate_signature") {
-						getSalt(function(salt) { tryCreate(salt, nonce); });
+						getSalt(tryCreate);
 					} else {
 						alert("Unknown error : " + result.error);
 					}
