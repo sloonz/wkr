@@ -60,11 +60,11 @@ Ring.prototype.openWithPassword = function(password, recursive) {
 		return this;
 
 	if(recursive) {
-		this.subrings.forEach(function(sr) {
-			sr = sr.openWithPassword(password, recursive);
+		for(var i in this.subrings) {
+			var sr = this.subrings[i].openWithPassword(password, recursive);
 			if(sr)
 				return sr;
-		});
+		}
 	}
 
 	return null;
