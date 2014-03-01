@@ -137,7 +137,7 @@ foreach($actions as $action) {
 			if(!($ring = $root->findRingBySignature($action->signature)))
 				throw new Exception("not_found");
 			if(in_array($action->data, $ring->items))
-				throw new Execption("duplicate_item");
+				throw new Exception("duplicate_item");
 			$ring->addItem($action->data);
 			break;
 		case "remove-item":
