@@ -111,3 +111,12 @@ Ring.prototype.decodeItem = function(item) {
 Ring.prototype.encodeItem = function(item) {
 	return forge.util.encode64(Ring.Utils.aesEncode(JSON.stringify(item), this.key));
 }
+
+Ring.prototype.indexOfAssociatedItem = function(signature) {
+	for(var i in this.ring.items) {
+		var item = this.decodeItem(this.ring.items[i]);
+		if(item.type == "subring" && Ring.Utils.sha256(forge.util.decode64(item.key)) == signature) {
+			return i;
+		}
+	}
+}

@@ -74,68 +74,59 @@ $(function() {
 	});
 
 	$("#create-subring").click(function(){
-		var name = prompt('Enter ring name');
-		var password = prompt('Enter ring password');
-		var tryCreate = function(salt) {
-			var key = Ring.Utils.derivateKey(password, salt);
-			var associatedItem = currentRing.encodeItem({type:"subring", key:forge.util.encode64(key)});
-			var data = [];
-			data.push({action: "add-item", data: associatedItem, signature: currentRing.ring.signature});
-			data.push({action: "add-subring", name: name, signature: Ring.Utils.sha256(key), salt: forge.util.encode64(slt), parent_signature: currentRing.ring.signature});
+		$("#edit-ring-dialog").modal("show");
+		$("#edit-ring-dialog .create").show();
+		$("#edit-ring-dialog .modify").hide();
+		$("#edit-ring-dialog form").submit(function() {
+			var name = $("#edit-ring-name").val();
+			var password = $("#edit-ring-password").val();
+			var tryCreate = function(salt) {
+				var key = Ring.Utils.derivateKey(password, salt);
+				var associatedItem = currentRing.encodeItem({type:"subring", key:forge.util.encode64(key)});
+				var data = [];
+				data.push({action: "add-item", data: associatedItem, signature: currentRing.ring.signature});
+				data.push({action: "add-subring", name: name, signature: Ring.Utils.sha256(key), salt: forge.util.encode64(salt), parent_signature: currentRing.ring.signature});
 
-			wkr.ajax(data, function(resp) {
-				if(resp.result == "error") {
-					// TODO: add an duplicate_name error condition
-					if(resp.error == "duplicate_signature") {
-						getSalt(tryCreate);
+				wkr.ajax(data, function(resp) {
+					if(resp.result == "error") {
+						// TODO: add an duplicate_name error condition
+						if(resp.error == "duplicate_signature") {
+							getSalt(tryCreate);
+						} else {
+							alert("Unknown error : " + result.error);
+						}
 					} else {
-						alert("Unknown error : " + result.error);
+						var subring = new Ring({name:name,signature:Ring.Utils.sha256(key),subrings:[],items:[]}, currentRing);
+						currentRing.subrings.push(subring);
+						currentRing.ring.subrings.push(subring.ring);
+						currentRing.ring.items.push(associatedItem);
+						$(".ring").remove();
+						wkr.fillRings(wkr.rootRing, 0);
+						$("#edit-ring-dialog").modal("hide");
 					}
-				} else {
-					currentRing.subrings.push(new Ring({name:name,signature:Ring.Utils.sha256(key),subrings:[],items:[]}, currentRing));
-					currentRing.ring.items.push(associatedItem);
-					$(".ring").remove();
-					wkr.fillRings(wkr.rootRing, 0);
-				}
-			});
-		};
+				});
+			};
 
-		if(name && password) {
-			getSalt(tryCreate);
-		}
-
-	});
-
-	$("#rename-subring").click(function(){
-		var name = prompt('Enter new name');
-		wkr.ajax({"action": "rename", "name": name, "signature": currentRing.ring.signature}, function(resp) {
-			if(resp.result == "error") {
-				// TODO: add an duplicate_name error condition
-				alert("Unknown error : " + result.error);
-			} else {
-				currentRing.name = name;
-				currentRing.ring.name = name;
-				$(".ring").remove();
-				wkr.fillRings(wkr.rootRing, 0);
-				$("#current-ring").text(currentRing.name);
+			$("#edit-ring-dialog .has-error").removeClass("has-error");
+			if(!name) {
+				$("#edit-ring-name").parent().addClass("has-error");
 			}
+			if(!password) {
+				$("#edit-ring-password").parent().addClass("has-error");
+			}
+			if(name && password) {
+				getSalt(tryCreate);
+			}
+
+			return false;
 		});
 	});
 
 	$("#remove-subring").click(function() {
 		if(confirm("Do you really want to delete " + currentRing.fullname + " including its entries and its subrings ?")) {
 			var data = [{action:"remove-subring",signature:currentRing.ring.signature}];
-			var associatedItemIndex = null;
-
-			for(var i in currentRing.parentRing.ring.items) {
-				var item = currentRing.parentRing.ring.items[i];
-				var dItem = currentRing.parentRing.decodeItem(item);
-				if(dItem.type == "subring" && Ring.Utils.sha256(forge.util.decode64(dItem.key)) == currentRing.ring.signature) {
-					data.push({action: "remove-item", signature: currentRing.parentRing.ring.signature, data: item});
-					associatedItemIndex = i;
-					break;
-				}
-			}
+			var associatedItemIndex = currentRing.parentRing.indexOfAssociatedItem(currentRing.ring.signature);
+			data.push({action: "remove-item", signature: currentRing.parentRing.ring.signature, data: currentRing.parentRing.ring.items[associatedItemIndex]});
 
 			wkr.ajax(data, function(resp) {
 				if(resp.result == "error") {
@@ -157,6 +148,90 @@ $(function() {
 				wkr.fillRings(wkr.rootRing, 0);
 			});
 		}
+	});
+
+	$("#edit-subring").click(function(){
+		$("#edit-ring-dialog").modal("show");
+		$("#edit-ring-name").val(currentRing.name);
+		$("#edit-ring-dialog .create").hide();
+		$("#edit-ring-dialog .modify").show();
+		$("#edit-ring-dialog form").submit(function() {
+			var name = $("#edit-ring-name").val();
+			var password = $("#edit-ring-password").val();
+			var barrier = 0;
+			$("#edit-ring-dialog .has-error").removeClass("has-error");
+			if(!name) {
+				$("#edit-ring-name").parent().addClass("has-error");
+				return false;
+			}
+			if(name != currentRing.name) {
+				barrier++;
+				wkr.ajax({"action": "rename", "name": $("#edit-ring-name").val(), "signature": currentRing.ring.signature}, function(resp) {
+					if(resp.result == "error") {
+						// TODO: add an duplicate_name error condition
+						alert("Unknown error : " + result.error);
+					} else {
+						currentRing.name = name;
+						currentRing.ring.name = name;
+						$(".ring").remove();
+						$("#current-ring").text(name);
+						wkr.fillRings(wkr.rootRing, 0);
+						if(--barrier == 0) {
+							$("#edit-ring-dialog").modal("hide");
+						}
+					}
+				});
+			}
+			if(password) {
+				barrier++;
+				var tryChangePassword = function(salt) {
+					var key = Ring.Utils.derivateKey(password, salt);
+					var newItems = [];
+					var data = [];
+					currentRing.ring.items.forEach(function(item) {
+						newItems.push(forge.util.encode64(Ring.Utils.aesEncode(JSON.stringify(currentRing.decodeItem(item)), key)));
+						data.push({"action": "remove-item", "signature": currentRing.ring.signature, "data": item});
+					});
+					newItems.forEach(function(item){
+						data.push({"action": "add-item", "signature": currentRing.ring.signature, "data": item});
+					});
+					if(currentRing.parentRing) {
+						var associatedItemIndex = currentRing.parentRing.indexOfAssociatedItem(currentRing.ring.signature);
+						var newAssociatedItem = currentRing.parentRing.encodeItem({"type":"subring","key": forge.util.encode64(key)})
+						data.push({"action": "remove-item", "signature": currentRing.parentRing.ring.signature, "data": currentRing.parentRing.ring.items[associatedItemIndex]});
+						data.push({"action": "add-item", "signature": currentRing.parentRing.ring.signature, "data": newAssociatedItem});
+					}
+					data.push({"action": "change-signature", "old_signature": currentRing.ring.signature, "new_signature": Ring.Utils.sha256(key), "new_salt": forge.util.encode64(salt)});
+					wkr.ajax(data, function(resp) {
+						if(resp.error) {
+							if(resp.error == "duplicate_signature") {
+								getSalt(tryChangePassword);
+							} else {
+								alert("Unknown error : " + result.error);
+							}
+						} else {
+							currentRing.key = key;
+							currentRing.ring.signature = Ring.Utils.sha256(key);
+							currentRing.ring.items = newItems;
+							currentRing.ring.salt = salt;
+							if(currentRing.parentRing) {
+								delete currentRing.parentRing.ring.items[associatedItemIndex];
+								currentRing.parentRing.ring.items.push(newAssociatedItem);
+							}
+							wkr.selectRing(currentRing);
+							if(--barrier == 0) {
+								$("#edit-ring-dialog").modal("hide");
+							}
+						}
+					});
+				};
+				getSalt(tryChangePassword);
+			}
+			if(!barrier) {
+				$("#edit-ring-dialog").modal("hide");
+			}
+			return false;
+		});
 	});
 
 	var getSalt = function(cb) {

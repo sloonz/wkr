@@ -177,7 +177,10 @@ foreach($actions as $action) {
 			$ring->name = $action->name;
 			break;
 		case "change-signature":
-			$root->signature = $action->signature;
+			if(!($ring = $root->findRingBySignature($action->old_signature)))
+				throw new Exception("not_found");
+			$ring->signature = $action->new_signature;
+			$ring->salt = $action->new_salt;
 			break;
 		}
 	} catch(Exception $e) {
