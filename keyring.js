@@ -1,26 +1,20 @@
 var Ring = function(ringData, parentRing) {
-	this.ring = ringData;
-	this.key = null;
-	this.parentRing = parentRing || null;
-
-	this.subrings = [];
-	for(var i in this.ring.subrings) {
-		this.subrings.push(new Ring(this.ring.subrings[i], this));
+	ringData.__proto__ = Ring.prototype;
+	var ring = Object.create(ringData);
+	ring.key = null;
+	ring.parentRing = parentRing || null;
+	for(var i in ring.subrings) {
+		ring.subrings[i] = new Ring(ring.subrings[i], ring);
 	}
-
-	return this;
+	return ring;
 };
 
 Ring.prototype = {
-	get name() {
-		return this.ring.name;
-	},
-
 	get fullname() {
 		if(this.parentRing)
-			return this.parentRing.fullname + "/" + this.ring.name;
+			return this.parentRing.fullname + "/" + this.name;
 		else
-			return this.ring.name;
+			return this.name;
 	}
 };
 
@@ -55,7 +49,7 @@ Ring.Utils.aesEncode = function(data, key) {
 };
 
 Ring.prototype.openWithPassword = function(password, recursive) {
-	var key = Ring.Utils.derivateKey(password, forge.util.decode64(this.ring.salt));
+	var key = Ring.Utils.derivateKey(password, forge.util.decode64(this.salt));
 	if(this.openWithKey(key))
 		return this;
 
@@ -71,7 +65,7 @@ Ring.prototype.openWithPassword = function(password, recursive) {
 };
 
 Ring.prototype.openWithKey = function(key, recursive) {
-	if(Ring.Utils.sha256(key) == this.ring.signature) {
+	if(Ring.Utils.sha256(key) == this.signature) {
 		this.key = key;
 		return this;
 	}
@@ -94,9 +88,9 @@ Ring.prototype.openFromParent = function() {
 		if(!this.parentRing.openFromParent())
 			return false;
 
-	for(var i in this.parentRing.ring.items) {
-		var item = this.parentRing.decodeItem(this.parentRing.ring.items[i]);
-		if(item.type == "subring" && Ring.Utils.sha256(forge.util.decode64(item.key)) == this.ring.signature) {
+	for(var i in this.parentRing.items) {
+		var item = this.parentRing.decodeItem(this.parentRing.items[i]);
+		if(item.type == "subring" && Ring.Utils.sha256(forge.util.decode64(item.key)) == this.signature) {
 			return this.openWithKey(forge.util.decode64(item.key));
 		}
 	}
@@ -113,8 +107,8 @@ Ring.prototype.encodeItem = function(item) {
 }
 
 Ring.prototype.indexOfAssociatedItem = function(signature) {
-	for(var i in this.ring.items) {
-		var item = this.decodeItem(this.ring.items[i]);
+	for(var i in this.items) {
+		var item = this.decodeItem(this.items[i]);
 		if(item.type == "subring" && Ring.Utils.sha256(forge.util.decode64(item.key)) == signature) {
 			return i;
 		}

@@ -50,7 +50,7 @@ wkr.afterLogin = function() {
 		if(!ring.key) {
 			ring.openFromParent();
 		}
-		ring.ring.items.forEach(function(encodedItem) {
+		ring.items.forEach(function(encodedItem) {
 			var item = ring.decodeItem(encodedItem);
 			var host = parent_url.host;
 			while(host.indexOf(".") > 0) {
@@ -62,9 +62,9 @@ wkr.afterLogin = function() {
 					);
 				if(match) {
 					if(hintedCreds.username && hintedCreds.username == item.username) {
-						hintedItems[ring.ring.signature + "-" + encodedItem] = [ring.fullname, item];
+						hintedItems[ring.signature + "-" + encodedItem] = [ring.fullname, item];
 					} else {
-						items[ring.ring.signature + "-" + encodedItem] = [ring.fullname, item];
+						items[ring.signature + "-" + encodedItem] = [ring.fullname, item];
 					}
 				}
 				host = host.slice(host.indexOf(".")+1);

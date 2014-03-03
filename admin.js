@@ -84,8 +84,8 @@ $(function() {
 				var key = Ring.Utils.derivateKey(password, salt);
 				var associatedItem = currentRing.encodeItem({type:"subring", key:forge.util.encode64(key)});
 				var data = [];
-				data.push({action: "add-item", data: associatedItem, signature: currentRing.ring.signature});
-				data.push({action: "add-subring", name: name, signature: Ring.Utils.sha256(key), salt: forge.util.encode64(salt), parent_signature: currentRing.ring.signature});
+				data.push({action: "add-item", data: associatedItem, signature: currentRing.signature});
+				data.push({action: "add-subring", name: name, signature: Ring.Utils.sha256(key), salt: forge.util.encode64(salt), parent_signature: currentRing.signature});
 
 				wkr.ajax(data, function(resp) {
 					if(resp.result == "error") {
@@ -98,8 +98,7 @@ $(function() {
 					} else {
 						var subring = new Ring({name:name,signature:Ring.Utils.sha256(key),subrings:[],items:[]}, currentRing);
 						currentRing.subrings.push(subring);
-						currentRing.ring.subrings.push(subring.ring);
-						currentRing.ring.items.push(associatedItem);
+						currentRing.items.push(associatedItem);
 						$(".ring").remove();
 						wkr.fillRings(wkr.rootRing, 0);
 						$("#edit-ring-dialog").modal("hide");
@@ -124,9 +123,9 @@ $(function() {
 
 	$("#remove-subring").click(function() {
 		if(confirm("Do you really want to delete " + currentRing.fullname + " including its entries and its subrings ?")) {
-			var data = [{action:"remove-subring",signature:currentRing.ring.signature}];
-			var associatedItemIndex = currentRing.parentRing.indexOfAssociatedItem(currentRing.ring.signature);
-			data.push({action: "remove-item", signature: currentRing.parentRing.ring.signature, data: currentRing.parentRing.ring.items[associatedItemIndex]});
+			var data = [{action:"remove-subring",signature:currentRing.signature}];
+			var associatedItemIndex = currentRing.parentRing.indexOfAssociatedItem(currentRing.signature);
+			data.push({action: "remove-item", signature: currentRing.parentRing.signature, data: currentRing.parentRing.items[associatedItemIndex]});
 
 			wkr.ajax(data, function(resp) {
 				if(resp.result == "error") {
@@ -134,10 +133,9 @@ $(function() {
 					return;
 				}
 
-				delete currentRing.parentRing.ring.items[associatedItemIndex];
-				for(var i in currentRing.parentRing.ring.subrings) {
-					if(currentRing.parentRing.ring.subrings[i].signature == currentRing.ring.signature) {
-						delete currentRing.parentRing.ring.subrings[i];
+				delete currentRing.parentRing.items[associatedItemIndex];
+				for(var i in currentRing.parentRing.subrings) {
+					if(currentRing.parentRing.subrings[i].signature == currentRing.signature) {
 						delete currentRing.parentRing.subrings[i];
 						break;
 					}
@@ -166,13 +164,12 @@ $(function() {
 			}
 			if(name != currentRing.name) {
 				barrier++;
-				wkr.ajax({"action": "rename", "name": $("#edit-ring-name").val(), "signature": currentRing.ring.signature}, function(resp) {
+				wkr.ajax({"action": "rename", "name": $("#edit-ring-name").val(), "signature": currentRing.signature}, function(resp) {
 					if(resp.result == "error") {
 						// TODO: add an duplicate_name error condition
 						alert("Unknown error : " + result.error);
 					} else {
 						currentRing.name = name;
-						currentRing.ring.name = name;
 						$(".ring").remove();
 						$("#current-ring").text(name);
 						wkr.fillRings(wkr.rootRing, 0);
@@ -188,20 +185,20 @@ $(function() {
 					var key = Ring.Utils.derivateKey(password, salt);
 					var newItems = [];
 					var data = [];
-					currentRing.ring.items.forEach(function(item) {
+					currentRing.items.forEach(function(item) {
 						newItems.push(forge.util.encode64(Ring.Utils.aesEncode(JSON.stringify(currentRing.decodeItem(item)), key)));
-						data.push({"action": "remove-item", "signature": currentRing.ring.signature, "data": item});
+						data.push({"action": "remove-item", "signature": currentRing.signature, "data": item});
 					});
 					newItems.forEach(function(item){
-						data.push({"action": "add-item", "signature": currentRing.ring.signature, "data": item});
+						data.push({"action": "add-item", "signature": currentRing.signature, "data": item});
 					});
 					if(currentRing.parentRing) {
-						var associatedItemIndex = currentRing.parentRing.indexOfAssociatedItem(currentRing.ring.signature);
+						var associatedItemIndex = currentRing.parentRing.indexOfAssociatedItem(currentRing.signature);
 						var newAssociatedItem = currentRing.parentRing.encodeItem({"type":"subring","key": forge.util.encode64(key)})
-						data.push({"action": "remove-item", "signature": currentRing.parentRing.ring.signature, "data": currentRing.parentRing.ring.items[associatedItemIndex]});
-						data.push({"action": "add-item", "signature": currentRing.parentRing.ring.signature, "data": newAssociatedItem});
+						data.push({"action": "remove-item", "signature": currentRing.parentRing.signature, "data": currentRing.parentRing.items[associatedItemIndex]});
+						data.push({"action": "add-item", "signature": currentRing.parentRing.signature, "data": newAssociatedItem});
 					}
-					data.push({"action": "change-signature", "old_signature": currentRing.ring.signature, "new_signature": Ring.Utils.sha256(key), "new_salt": forge.util.encode64(salt)});
+					data.push({"action": "change-signature", "old_signature": currentRing.signature, "new_signature": Ring.Utils.sha256(key), "new_salt": forge.util.encode64(salt)});
 					wkr.ajax(data, function(resp) {
 						if(resp.error) {
 							if(resp.error == "duplicate_signature") {
@@ -211,12 +208,12 @@ $(function() {
 							}
 						} else {
 							currentRing.key = key;
-							currentRing.ring.signature = Ring.Utils.sha256(key);
-							currentRing.ring.items = newItems;
-							currentRing.ring.salt = salt;
+							currentRing.signature = Ring.Utils.sha256(key);
+							currentRing.items = newItems;
+							currentRing.salt = salt;
 							if(currentRing.parentRing) {
-								delete currentRing.parentRing.ring.items[associatedItemIndex];
-								currentRing.parentRing.ring.items.push(newAssociatedItem);
+								delete currentRing.parentRing.items[associatedItemIndex];
+								currentRing.parentRing.items.push(newAssociatedItem);
 							}
 							wkr.selectRing(currentRing);
 							if(--barrier == 0) {
@@ -280,7 +277,7 @@ $(function() {
 			}
 
 			var cls = (isRec ? ' class="recursive"' : '');
-			ring.ring.items.forEach(function(item){
+			ring.items.forEach(function(item){
 				var dItem = ring.decodeItem(item);
 				if(dItem.type == "subring") {
 					return;
@@ -295,9 +292,9 @@ $(function() {
 						$("#panel").show();
 						$("#item-form").unbind("submit");
 						$("#item-form").submit(function(){
-							var data = {action: "remove-item", signature: ring.ring.signature, data: item};
+							var data = {action: "remove-item", signature: ring.signature, data: item};
 							wkr.submitItem(ring, data, function() {
-								delete ring.ring.items[ring.ring.items.indexOf(item)];
+								delete ring.items[ring.items.indexOf(item)];
 								wkr.selectRing(currentRing);
 							});
 						});
@@ -305,12 +302,12 @@ $(function() {
 					$(".glyphicon-trash", tr).click(function() {
 						tr.addClass("danger");
 						if(confirm("Do you really want to delete this item ?")) {
-							wkr.ajax({action: "remove-item", signature: ring.ring.signature, data: item}, function(resp) {
+							wkr.ajax({action: "remove-item", signature: ring.signature, data: item}, function(resp) {
 								if(resp.result == "error") {
 									alert("Unknown error : " + resp.error);
 								} else {
 									tr.remove();
-									delete ring.ring.items[ring.ring.items.indexOf(item)];
+									delete ring.items[ring.items.indexOf(item)];
 								}
 							});
 						}
@@ -338,14 +335,14 @@ $(function() {
 						$("#move-item-dialog .modal-footer .btn-primary").click(function() {
 							var movedItem = selectedRing.encodeItem(dItem);
 							var data = [];
-							data.push({action: "remove-item", signature: ring.ring.signature, data: item});
-							data.push({action: "add-item", signature: selectedRing.ring.signature, data: movedItem});
+							data.push({action: "remove-item", signature: ring.signature, data: item});
+							data.push({action: "add-item", signature: selectedRing.signature, data: movedItem});
 							wkr.ajax(data, function(resp) {
 								if(resp.result == "error") {
 									alert("Unknown error: "+ resp.error);
 								} else {
-									selectedRing.ring.items.push(movedItem);
-									delete ring.ring.items[ring.ring.items.indexOf(item)];
+									selectedRing.items.push(movedItem);
+									delete ring.items[ring.items.indexOf(item)];
 									wkr.selectRing(currentRing);
 									$("#move-item-dialog").modal("hide");
 								}

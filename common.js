@@ -114,12 +114,12 @@ wkr.submitItem = function(ring, otherAction, cb) {
 	if(otherAction) {
 		data.push(otherAction);
 	}
-	data.push({action: "add-item", signature: ring.ring.signature, data: item});
+	data.push({action: "add-item", signature: ring.signature, data: item});
 	wkr.ajax(data, function(resp) {
 		if(resp.result == "error") {
 			alert("Unknown error: "+ resp.error);
 		} else {
-			ring.ring.items.push(item);
+			ring.items.push(item);
 			if(cb) {
 				cb();
 			}
@@ -164,7 +164,7 @@ wkr.doLogin = function(key, password, rememberType) {
 };
 
 wkr.fillRings = function(ring, indent) {
-	var id = "r-" + ring.ring.signature;
+	var id = "r-" + ring.signature;
 	$("#ring-list .divider").before('<li class="ring" id="'+id+'"><a href="#"><span style="margin-left:'+indent+'em;">&nbsp;</span></a></li>');
 	$("#"+id+" a").append(ring.name);
 	$("#"+id+" a").attr("onclick","return false;");
