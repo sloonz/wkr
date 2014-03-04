@@ -279,13 +279,11 @@ $(function() {
 			var cls = (isRec ? ' class="recursive"' : '');
 			ring.items.forEach(function(item){
 				var dItem = ring.decodeItem(item);
-				if(dItem.type == "subring") {
-					return;
-				} else if(dItem.host && dItem.username) {
+				if(dItem.type != "subring") {
 					var tr = $('<tr'+cls+'><td></td><td></td><td><button class="glyphicon glyphicon-pencil btn"></button><button class="glyphicon glyphicon-trash btn"></button></td></tr>');
 					$("tbody").append(tr);
-					$("td:eq(0)", tr).append(dItem.host);
-					$("td:eq(1)", tr).append(dItem.username);
+					$("td:eq(0)", tr).append(dItem.host || "(none)");
+					$("td:eq(1)", tr).append(dItem.username || "(none)");
 					$("td:not(:last)", tr).click(function(){
 						clear();
 						wkr.setItem(dItem);
