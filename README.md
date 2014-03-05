@@ -33,4 +33,3 @@ You must use the Tampermonkey extension to use the user-script.
 Contributions welcome, especially on UI side.
 
 * Bookmarklets, OTP
-* Nice interface for user creation
