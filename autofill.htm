@@ -30,7 +30,7 @@
 							<label class="sr-only" for="auth-password">Password</label>
 							<input type="password" class="form-control" id="auth-password" placeholder="Password">
 						</div>
-						<div class="form-group">
+						<div class="checkbox">
 							<select class="form-control" id="auth-remember">
 								<option value="none">Don’t remember the password</option>
 								<option value="session">Remember the password for this session</option>
@@ -40,12 +40,23 @@
 						<button type="submit" class="btn navbar-btn">Sign in</button>
 					</form>
 
-					<div class="nav navbar-nav" id="auth-info">
-						<p class="navbar-text"></p>
+					<div class="nav navbar-nav auth-info">
+						<span class="navbar-text"></span>
+					</div>
+					<div class="nav navbar-nav auth-info">
 						<button type="button" class="btn navbar-btn" id="sign-out">Sign out</button>
 					</div>
+					<div class="nav navbar-nav navbar-right auth-info">
+						<a class="navbar-btn btn btn-default" href="autofill.user.js">Install Userscript</a>
+					</div>
 
-					<button id="close-btn" type="button" class="btn navbar-btn navbar-right glyphicon glyphicon-remove"></button>
+					<div class="nav navbar-nav navbar-right" id="new-user-div">
+						<button type="button" class="dropdown-toggle btn navbar-btn" data-toggle="dropdown">New User <span class="caret"></span></button>
+						<ul class="dropdown-menu">
+							<li><a href="#" id="create-account">Create Account</a></li>
+							<li><a href="autofill.user.js">Install Userscript</a></li>
+						</ul>
+					</div>
 				</div>
 			</div>
 		</nav>
