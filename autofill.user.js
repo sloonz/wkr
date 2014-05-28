@@ -51,7 +51,7 @@
 					if(!hintCreds.password && elem.type == "password") {
 						hintCreds.password = elem.value;
 					}
-					if((!hintCreds.username && elem.type == "text") || (elem.type == "email" && elem.value)) {
+					if((!hintCreds.username && elem.type == "text") || (elem.type == "email" && elem.value) || (elem.type == "tel" && elem.value)) {
 						hintCreds.username = elem.value;
 					}
 				}
@@ -88,13 +88,14 @@
 		var fillForm = function(form) {
 			var user_filled = false;
 			var pwd_filled = false;
+
 			for(var i in form.elements) {
 				var el = form.elements[i];
 				if(el.type == "password") {
 					el.value = cred.password;
 					pwd_filled = true;
 				}
-				if((el.type == "text" || el.type == "email") && user_filled == false) {
+				if((el.type == "text" || el.type == "email" || el.type == "tel") && user_filled == false) {
 					el.value = cred.username;
 					user_filled = true;
 				}
