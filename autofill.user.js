@@ -51,7 +51,7 @@
 					if(!hintCreds.password && elem.type == "password") {
 						hintCreds.password = elem.value;
 					}
-					if((!hintCreds.username && elem.type == "text") || (elem.type == "email" && elem.value) || (elem.type == "tel" && elem.value)) {
+					if((!hintCreds.username && elem.type == "text") || (elem.type == "email" && elem.value)) {
 						hintCreds.username = elem.value;
 					}
 				}
