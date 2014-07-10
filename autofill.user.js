@@ -2,7 +2,7 @@
 // @name        WKR
 // @namespace   http://github.com/sloonz
 // @include     *
-// @version     1.0
+// @version     1.1
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
