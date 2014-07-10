@@ -9,37 +9,46 @@
 // ==/UserScript==
 
 (function() {
-	var autofillerUrl = GM_getValue("url");
 	var promptURL = function() {
-		var url = prompt('Autofiller URL', autofillerUrl);
+		var url = prompt('Autofiller URL', GM_getValue("url"));
 		if(url) {
-			autofillerUrl = url;
-			GM_setValue("url", autofillerUrl);
+			GM_setValue("url", url);
 		}
+		return url;
+	};
+
+	var getAutofiller = function(ask) {
+		var autofillerUrl = GM_getValue("url");
+		if(!autofillerUrl && ask)
+			autofillerUrl = promptURL();
+
+		var autofillerUrlParsed = document.createElement("a");
+		autofillerUrlParsed.href = autofillerUrl;
+		var origin = autofillerUrlParsed.protocol + "//" + autofillerUrlParsed.host;
+
+		if(!autofillerUrl || document.location.protocol + "//" + document.location.host == origin)
+			return null;
+		else
+			return {"url": autofillerUrl, "origin": origin};
 	};
 
 	GM_registerMenuCommand("Set address", promptURL);
-
-	if(!autofillerUrl) {
-		promptURL();
-	}
-
-	var autofillerUrlParsed = document.createElement("a");
-	autofillerUrlParsed.href = autofillerUrl;
-	var origin = autofillerUrlParsed.protocol + "//" + autofillerUrlParsed.host;
-
-	if(!autofillerUrl || document.location.protocol + "//" + document.location.host == origin)
-		return;
 
 	var frame = document.createElement("iframe");
 	var activeElement = document.activeElement;
 	var handlers = {}
 
 	handlers.onMessage = function(event) {
-		if(event.origin == origin) {
+		var autofiller = getAutofiller();
+		if(autofiller && autofiller.origin && event.origin == autofiller.origin) {
 			handlers[event.data.action].apply(window, event.data.arguments);
 		}
 		else if(event.data == "wkr_findCredentials") {
+			if(!autofiller)
+				autofiller = getAutofiller(true);
+			if(!autofiller)
+				return;
+
 			activeElement = document.activeElement;
 
 			var hintCreds = {};
@@ -63,10 +72,10 @@
 			}, false);
 
 			frame.addEventListener("load", function() {
-				frame.contentWindow.postMessage({"action": "getCredentials", "arguments": [hintCreds]}, autofillerUrl);
+				frame.contentWindow.postMessage({"action": "getCredentials", "arguments": [hintCreds]}, autofiller.url);
 			}, false);
 
-			frame.src = autofillerUrl + "?" + encodeURIComponent(window.location.toString());
+			frame.src = autofiller.url + "?" + encodeURIComponent(window.location.toString());
 			frame.style.zIndex = 1000;
 			frame.style.border = "none";
 			frame.style.display = "block";
