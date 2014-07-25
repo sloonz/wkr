@@ -2,7 +2,7 @@
 // @name        WKR
 // @namespace   http://github.com/sloonz
 // @include     *
-// @version     1.1
+// @version     1.2
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_registerMenuCommand
@@ -138,6 +138,6 @@
 
 	window.addEventListener("message", handlers.onMessage, false);
 	window.addEventListener("keydown", function(e){
-		(e.ctrlKey && e.keyCode == 89 /* DOM_VK_Y */) && window.postMessage("wkr_findCredentials","*");
+		(e.ctrlKey && !e.shiftKey && !e.altKey && e.keyCode == 89 /* DOM_VK_Y */) && window.postMessage("wkr_findCredentials","*");
 	},false);
 })();
