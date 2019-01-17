@@ -1,3 +1,14 @@
+# Depreciation Notice
+
+This project has been created when the offer for open-source and
+self-hosted passwords manager was poor. This is no longer the case,
+and there are better solutions out there. I am no longer maintaining
+this repository.
+
+[Bitwarden](https://bitwarden.com/) is an excellent
+open-source alternative, with a great self-hosted option with
+[bitwarden\_rs](https://github.com/dani-garcia/bitwarden_rs).
+
 # What is it
 
 Like LastPass, it is a password manager. Differences with LastPass are :
